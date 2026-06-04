@@ -1,0 +1,290 @@
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { api } from '../api/client';
+import { calcNutrients, formatDateShort } from '../utils/calculations';
+import MacroSummary from '../components/MacroSummary';
+import ReferenciaPesos from '../components/ReferenciaPesos';
+import GymSection from '../components/GymSection';
+import WeightSection from '../components/WeightSection';
+import DailyAnalysis from '../components/DailyAnalysis';
+import type { DailyGoal } from '../types';
+
+export default function DailyLog() {
+  const { date } = useParams<{ date: string }>();
+  const navigate = useNavigate();
+  const today = new Date().toISOString().slice(0, 10);
+  const d = date || today;
+
+  const [foods, setFoods] = useState<any[]>([]);
+  const [entries, setEntries] = useState<any[]>([]);
+  const [movements, setMovements] = useState<any[]>([]);
+  const [goal, setGoal] = useState<DailyGoal>({ calories: 2000, protein: 150, fat: 65, carbs: 200 });
+
+  const [selectedFoodId, setSelectedFoodId] = useState('');
+  const [foodSearch, setFoodSearch] = useState('');
+  const [showFoodDropdown, setShowFoodDropdown] = useState(false);
+  const [grams, setGrams] = useState('100');
+  const [movementDesc, setMovementDesc] = useState('');
+  const [movementCal, setMovementCal] = useState('');
+  const [steps, setSteps] = useState('');
+  const [workoutData, setWorkoutData] = useState<any>({ wentToGym: false, bodyParts: [] });
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const loadData = () => {
+    Promise.all([
+      api.getFoods(),
+      api.getFoodEntries(d),
+      api.getMovementEntries(d),
+      api.getGoal(),
+      api.getWorkout(d),
+    ]).then(([f, fe, me, g, wo]) => {
+      setFoods(f);
+      setEntries(fe);
+      setMovements(me);
+      setGoal(g);
+      setWorkoutData(wo);
+    });
+  };
+
+  useEffect(() => { loadData(); }, [d]);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowFoodDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  const dayEntries = entries.filter((e: any) => e.datetime.startsWith(d));
+  const dayMovements = movements.filter((m: any) => m.datetime.startsWith(d));
+
+  const handleSelectFood = (id: string) => {
+    setSelectedFoodId(id);
+    const f = foods.find(x => x.id === id);
+    setFoodSearch(f?.name || '');
+    setShowFoodDropdown(false);
+  };
+
+  const handleAddFood = async () => {
+    if (!selectedFoodId || !grams) return;
+    await api.createFoodEntry({
+      foodItemId: selectedFoodId,
+      grams: Number(grams),
+      datetime: d + 'T' + new Date().toTimeString().slice(0, 5),
+    });
+    loadData();
+    setGrams('100');
+  };
+
+  const filteredFoods = foods.filter(f =>
+    f.name.toLowerCase().includes(foodSearch.toLowerCase())
+  );
+
+  const handleAddMovement = async () => {
+    if (!movementDesc || !movementCal) return;
+    await api.createMovementEntry({
+      description: movementDesc,
+      caloriesBurned: Number(movementCal),
+      datetime: d + 'T' + new Date().toTimeString().slice(0, 5),
+    });
+    loadData();
+    setMovementDesc('');
+    setMovementCal('');
+  };
+
+  const handleAddSteps = async () => {
+    if (!steps) return;
+    const cal = Math.round(Number(steps) * 0.04);
+    await api.createMovementEntry({
+      description: '🚶 Pasos',
+      caloriesBurned: cal,
+      datetime: d + 'T' + new Date().toTimeString().slice(0, 5),
+    });
+    loadData();
+    setSteps('');
+  };
+
+  const daySteps = dayMovements
+    .filter((m: any) => m.description === '🚶 Pasos')
+    .reduce((s: number, m: any) => s + Math.round(m.caloriesBurned / 0.04), 0);
+
+  const selectedFood = foods.find(f => f.id === selectedFoodId);
+  const preview = selectedFood ? calcNutrients(selectedFood, Number(grams) || 0) : null;
+
+  const totals = {
+    calories: 0, protein: 0, fat: 0, carbs: 0,
+    caloriesBurned: dayMovements.reduce((s: number, m: any) => s + m.caloriesBurned, 0),
+  };
+  for (const e of dayEntries) {
+    const f = foods.find(x => x.id === e.foodItemId);
+    if (f) {
+      const n = calcNutrients(f, e.grams);
+      totals.calories += n.calories;
+      totals.protein += n.protein;
+      totals.fat += n.fat;
+      totals.carbs += n.carbs;
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <button onClick={() => navigate('/')} className="text-gray-400 hover:text-gray-600">&larr;</button>
+        <h2 className="text-xl font-bold">{formatDateShort(d)}</h2>
+      </div>
+
+      <MacroSummary totals={totals} goal={goal} date={d} />
+
+      <DailyAnalysis totals={totals} goal={goal} wentToGym={workoutData.wentToGym} bodyParts={workoutData.bodyParts || []} steps={daySteps} />
+
+      <WeightSection date={d} />
+
+      <div className="md:grid md:grid-cols-[1fr_2fr] md:gap-4">
+        <ReferenciaPesos />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <h3 className="font-semibold mb-3">Agregar alimento</h3>
+        <div className="flex flex-wrap gap-2 mb-3">
+          <div ref={searchRef} className="relative flex-1 min-w-[200px]">
+            <input
+              type="text"
+              value={foodSearch}
+              onChange={e => { setFoodSearch(e.target.value); setShowFoodDropdown(true); setSelectedFoodId(''); }}
+              onFocus={() => setShowFoodDropdown(true)}
+              placeholder="🔍 Buscar alimento..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              onKeyDown={e => e.key === 'Escape' && setShowFoodDropdown(false)}
+            />
+            {showFoodDropdown && foodSearch && (
+              <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {filteredFoods.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-gray-400">Sin resultados</div>
+                ) : (
+                  filteredFoods.map(f => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => handleSelectFood(f.id)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-emerald-50 transition-colors"
+                    >
+                      <span className="font-medium">{f.name}</span>
+                      <span className="text-gray-400 ml-2">{f.caloriesPer100g} cal</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+          <input
+            type="number"
+            value={grams}
+            onChange={e => setGrams(e.target.value)}
+            placeholder="Gramos"
+            className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          />
+          <span className="text-sm text-gray-500 self-center">g</span>
+          <button onClick={handleAddFood} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
+            + Añadir
+          </button>
+        </div>
+        {preview && (
+          <div className="text-xs text-gray-500 space-x-3">
+            <span>🔥 {preview.calories} kcal</span>
+            <span>🥩 {preview.protein}g prot</span>
+            <span>🧈 {preview.fat}g grasas</span>
+            <span>🍚 {preview.carbs}g carbs</span>
+          </div>
+        )}
+      </div>
+      </div>
+
+      {dayEntries.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <h3 className="font-semibold mb-3">Alimentos registrados</h3>
+          <div className="space-y-2">
+            {dayEntries.map((e: any) => {
+              const f = foods.find(x => x.id === e.foodItemId);
+              if (!f) return null;
+              const n = calcNutrients(f, e.grams);
+              return (
+                <div key={e.id} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
+                  <div>
+                    <span className="font-medium">{f.name}</span>
+                    <span className="text-gray-400 ml-2">{e.grams}g</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-500 text-xs">
+                    <span>{n.calories}cal</span>
+                    <span>{n.protein}g</span>
+                    <span>{n.fat}g</span>
+                    <span>{n.carbs}g</span>
+                    <button onClick={async () => { await api.deleteFoodEntry(e.id); loadData(); }} className="text-red-400 hover:text-red-600 ml-2">✕</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <GymSection date={d} onSaved={loadData} />
+
+      <div className="md:grid md:grid-cols-2 md:gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <h3 className="font-semibold mb-3">🔥 Cardio y pasos</h3>
+          <div className="flex flex-wrap gap-2 mb-3">
+            <input
+              type="text"
+              value={movementDesc}
+              onChange={e => setMovementDesc(e.target.value)}
+              placeholder="Ej: Correr 30min"
+              className="flex-1 min-w-[180px] border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            />
+            <input
+              type="number"
+              value={movementCal}
+              onChange={e => setMovementCal(e.target.value)}
+              placeholder="Calorías"
+              className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            />
+            <button onClick={handleAddMovement} className="bg-amber-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors">
+              + Añadir
+            </button>
+          </div>
+          <div className="flex items-center gap-2 border-t border-gray-100 pt-3">
+            <span className="text-sm text-gray-500">🚶 Pasos Apple Watch:</span>
+            <input
+              type="number"
+              value={steps}
+              onChange={e => setSteps(e.target.value)}
+              placeholder="Ej: 8500"
+              className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              onKeyDown={e => e.key === 'Enter' && handleAddSteps()}
+            />
+            <button onClick={handleAddSteps} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+              Guardar
+            </button>
+          </div>
+        </div>
+
+        {dayMovements.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <h3 className="font-semibold mb-3">Ejercicio registrado</h3>
+          <div className="space-y-2">
+            {dayMovements.map((m: any) => (
+              <div key={m.id} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
+                <span className="font-medium">{m.description}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-600 font-medium">{m.caloriesBurned} kcal</span>
+                  <button onClick={async () => { await api.deleteMovementEntry(m.id); loadData(); }} className="text-red-400 hover:text-red-600">✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,110 @@
+INSERT INTO foods (id, name, calories_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g) VALUES
+  -- Carnes y embutidos
+  (UUID(), 'Longaniza cocida',          320, 15.0, 28.0,  2.0),
+  (UUID(), 'Chorizo',                   330, 14.0, 30.0,  2.0),
+  (UUID(), 'Salchicha',                 300, 11.0, 27.0,  4.0),
+  (UUID(), 'Vienesa',                   280, 12.0, 25.0,  3.0),
+  (UUID(), 'Costillar de cerdo',        320, 18.0, 27.0,  0.0),
+  (UUID(), 'Chuleta de cerdo',          250, 24.0, 17.0,  0.0),
+  (UUID(), 'Milanesa de pollo',         250, 20.0, 14.0, 10.0),
+  (UUID(), 'Milanesa de vacuno',        280, 22.0, 18.0,  8.0),
+  (UUID(), 'Bistec',                    230, 25.0, 14.0,  0.0),
+  (UUID(), 'Churrasco',                 220, 24.0, 13.0,  0.0),
+  (UUID(), 'Pollo asado',               180, 27.0,  7.0,  0.0),
+  (UUID(), 'Pavo asado',                170, 28.0,  5.0,  0.0),
+  (UUID(), 'Pescado frito',             200, 22.0, 12.0,  5.0),
+  (UUID(), 'Merluza',                   100, 21.0,  1.5,  0.0),
+
+  -- Platos preparados
+  (UUID(), 'Cazuela de pollo',           60,  5.0,  2.0,  5.0),
+  (UUID(), 'Cazuela de vacuno',          70,  6.0,  3.0,  5.0),
+  (UUID(), 'Empanada de pino (1 ud)',   280, 12.0, 16.0, 22.0),
+  (UUID(), 'Pastel de choclo',          130,  5.0,  6.0, 14.0),
+  (UUID(), 'Humita',                    150,  4.0,  6.0, 20.0),
+  (UUID(), 'Porotos granados',          110,  5.0,  3.0, 16.0),
+  (UUID(), 'Charquicán',                 90,  5.0,  3.0, 10.0),
+  (UUID(), 'Carbonada',                  60,  4.0,  2.0,  6.0),
+  (UUID(), 'Arroz con pollo',           130,  8.0,  3.0, 18.0),
+  (UUID(), 'Pollo arvejado',            120, 10.0,  4.0, 10.0),
+  (UUID(), 'Lentejas con longaniza',    130,  8.0,  5.0, 14.0),
+  (UUID(), 'Porotos con riendas',       120,  6.0,  3.0, 18.0),
+
+  -- Acompañamientos
+  (UUID(), 'Puré de papas',              90,  2.0,  3.0, 14.0),
+  (UUID(), 'Papas fritas',              310,  4.0, 15.0, 40.0),
+  (UUID(), 'Arroz cocido',              130,  2.7,  0.3, 28.0),
+  (UUID(), 'Arroz integral cocido',     123,  2.7,  1.0, 26.0),
+  (UUID(), 'Quinoa cocida',             120,  4.4,  1.9, 21.0),
+  (UUID(), 'Sopaipilla',                340,  5.0, 18.0, 40.0),
+  (UUID(), 'Tortilla de huevo',         170, 12.0, 13.0,  1.0),
+
+  -- Frutas
+  (UUID(), 'Palta (aguacate)',          160,  2.0, 15.0,  9.0),
+  (UUID(), 'Plátano',                    89,  1.1,  0.3, 23.0),
+  (UUID(), 'Manzana roja',               52,  0.3,  0.2, 14.0),
+  (UUID(), 'Manzana verde',              52,  0.3,  0.2, 14.0),
+  (UUID(), 'Naranja',                    47,  0.9,  0.1, 12.0),
+  (UUID(), 'Mandarina',                  53,  0.8,  0.3, 13.0),
+  (UUID(), 'Frutillas',                  32,  0.7,  0.3,  8.0),
+  (UUID(), 'Arándanos',                  57,  0.7,  0.3, 14.0),
+  (UUID(), 'Uva',                        69,  0.7,  0.2, 18.0),
+  (UUID(), 'Piña',                       50,  0.5,  0.1, 13.0),
+  (UUID(), 'Sandía',                     30,  0.6,  0.2,  8.0),
+  (UUID(), 'Melón',                      34,  0.8,  0.2,  8.0),
+  (UUID(), 'Pera',                       57,  0.4,  0.1, 15.0),
+  (UUID(), 'Durazno',                    39,  0.9,  0.3, 10.0),
+
+  -- Verduras crudas
+  (UUID(), 'Tomate',                     18,  0.9,  0.2,  3.9),
+  (UUID(), 'Lechuga',                    15,  1.4,  0.2,  2.9),
+  (UUID(), 'Pepino',                     15,  0.7,  0.1,  3.6),
+  (UUID(), 'Zanahoria',                  41,  0.9,  0.2, 10.0),
+  (UUID(), 'Cebolla',                    40,  1.1,  0.1,  9.3),
+  (UUID(), 'Pimiento rojo',              31,  1.0,  0.3,  6.0),
+  (UUID(), 'Pimiento verde',             20,  0.9,  0.2,  4.6),
+  (UUID(), 'Brócoli crudo',              34,  2.8,  0.4,  7.0),
+  (UUID(), 'Coliflor cruda',             25,  1.9,  0.3,  5.0),
+  (UUID(), 'Espinaca cruda',             23,  2.9,  0.4,  3.6),
+  (UUID(), 'Repollo',                    25,  1.3,  0.1,  6.0),
+  (UUID(), 'Betarraga cruda',            43,  1.6,  0.2, 10.0),
+  (UUID(), 'Apio',                       16,  0.7,  0.2,  3.0),
+  (UUID(), 'Champiñones',                22,  3.1,  0.3,  3.3),
+
+  -- Lácteos y huevos
+  (UUID(), 'Leche descremada',           34,  3.4,  0.1,  5.0),
+  (UUID(), 'Yogur griego',               97,  9.0,  5.0,  4.0),
+  (UUID(), 'Queso mantecoso',            350, 22.0, 29.0,  1.0),
+  (UUID(), 'Queso gauda',                356, 25.0, 27.0,  2.0),
+  (UUID(), 'Queso chanco',               330, 23.0, 26.0,  1.0),
+  (UUID(), 'Huevo cocido',              155, 13.0, 11.0,  1.1),
+  (UUID(), 'Clara de huevo cocida',      52, 10.9,  0.2,  0.7),
+
+  -- Panadería
+  (UUID(), 'Pan amasado',               290,  9.0,  5.0, 53.0),
+  (UUID(), 'Hallulla',                  300,  8.0,  6.0, 53.0),
+  (UUID(), 'Marraqueta',                280,  9.0,  2.0, 56.0),
+  (UUID(), 'Pan de molde blanco',       265,  8.0,  3.5, 49.0),
+  (UUID(), 'Pan de molde integral',     247,  9.5,  3.0, 47.0),
+  (UUID(), 'Pan pita',                  275,  9.0,  1.0, 55.0),
+
+  -- Legumbres secas (peso cocido)
+  (UUID(), 'Lentejas cocidas',          116,  9.0,  0.4, 20.0),
+  (UUID(), 'Porotos cocidos',           132,  8.7,  0.5, 24.0),
+  (UUID(), 'Garbanzos cocidos',         139,  8.9,  2.6, 23.0),
+
+  -- Semillas y frutos secos
+  (UUID(), 'Maní japonés',              500, 18.0, 35.0, 45.0),
+  (UUID(), 'Maní tostado',              585, 24.0, 50.0, 16.0),
+  (UUID(), 'Almendras',                 579, 21.0, 50.0, 22.0),
+  (UUID(), 'Nueces',                    654, 15.0, 65.0, 14.0),
+  (UUID(), 'Semillas de chía',          486, 17.0, 31.0, 42.0),
+
+  -- Bebidas
+  (UUID(), 'Agua',                        0,  0.0,  0.0,  0.0),
+  (UUID(), 'Café solo',                   1,  0.1,  0.0,  0.0),
+  (UUID(), 'Té',                          1,  0.0,  0.0,  0.0),
+  (UUID(), 'Bebida gaseosa (Coca-Cola)', 42,  0.0,  0.0, 10.4),
+  (UUID(), 'Bebida zero',                 0,  0.0,  0.0,  0.0),
+  (UUID(), 'Juego natural',              45,  0.5,  0.1, 11.0),
+  (UUID(), 'Cerveza',                    43,  0.5,  0.0,  3.6),
+  (UUID(), 'Vino tinto',                 85,  0.1,  0.0,  2.6);
