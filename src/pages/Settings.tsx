@@ -12,32 +12,56 @@ export default function Settings() {
     alert('Metas guardadas');
   };
 
-  const h = (k: keyof DailyGoal) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const updNum = (k: keyof DailyGoal) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setGoal({ ...goal, [k]: Number(e.target.value) });
 
+  const updGender = (gender: 'male' | 'female') => setGoal({ ...goal, gender });
+
   return (
-    <div className="max-w-md mx-auto space-y-4">
-      <h2 className="text-xl font-bold">Metas diarias</h2>
+    <div className="max-w-lg mx-auto space-y-4">
+      <h2 className="text-xl font-bold">Configuración</h2>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
+        <h3 className="font-semibold text-sm text-gray-600">📏 Datos corporales</h3>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Altura (cm)</label>
+            <input type="number" value={goal.heightCm} onChange={updNum('heightCm')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Edad</label>
+            <input type="number" value={goal.age} onChange={updNum('age')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Sexo</label>
+            <select value={goal.gender} onChange={e => updGender(e.target.value as any)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+              <option value="male">Hombre</option>
+              <option value="female">Mujer</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
+        <h3 className="font-semibold text-sm text-gray-600">🎯 Metas diarias</h3>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Calorías</label>
-          <input type="number" value={goal.calories} onChange={h('calories')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          <input type="number" value={goal.calories} onChange={updNum('calories')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Proteínas (g)</label>
-          <input type="number" value={goal.protein} onChange={h('protein')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          <input type="number" value={goal.protein} onChange={updNum('protein')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Grasas (g)</label>
-          <input type="number" value={goal.fat} onChange={h('fat')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          <input type="number" value={goal.fat} onChange={updNum('fat')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Carbohidratos (g)</label>
-          <input type="number" value={goal.carbs} onChange={h('carbs')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          <input type="number" value={goal.carbs} onChange={updNum('carbs')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
         </div>
         <button onClick={handleSave} className="w-full bg-emerald-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
-          Guardar metas
+          Guardar configuración
         </button>
       </div>
     </div>

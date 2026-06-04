@@ -39,4 +39,9 @@ export const api = {
     request<any[]>(`/weights?dateFrom=${dateFrom}&dateTo=${dateTo}`),
   getWeight: (date: string) => request<any>(`/weight/${date}`),
   saveWeight: (date: string, data: any) => request<any>(`/weight/${date}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  getMeasurementsRange: (dateFrom: string, dateTo: string) =>
+    request<any[]>(`/measurements?dateFrom=${dateFrom}&dateTo=${dateTo}`),
+  getMeasurement: (date: string) => request<any>(`/measurement/${date}`),
+  saveMeasurement: (date: string, data: any) => request<any>(`/measurement/${date}`, { method: 'PUT', body: JSON.stringify(data) }),
 };

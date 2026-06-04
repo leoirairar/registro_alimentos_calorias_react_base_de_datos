@@ -206,19 +206,54 @@ app.put('/api/weight/:date', async (req, res) => {
 
 // ─── GOALS ────────────────────────────────────────────
 
+// ─── MEASUREMENTS ────────────────────────────────────
+
+app.get('/api/measurements', async (req, res) => {
+  const { dateFrom, dateTo } = req.query;
+  let query = 'SELECT * FROM body_measurements';
+  const params = [];
+  if (dateFrom && dateTo) {
+    query += ' WHERE entry_date >= ? AND entry_date <= ?';
+    params.push(dateFrom, dateTo);
+  }
+  query += ' ORDER BY entry_date';
+  const [rows] = await pool.query(query, params);
+  res.json(rows.map(normalizeMeasurement));
+});
+
+app.get('/api/measurement/:date', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM body_measurements WHERE entry_date = ?', [req.params.date]);
+  if (rows.length === 0) return res.json(null);
+  res.json(normalizeMeasurement(rows[0]));
+});
+
+app.put('/api/measurement/:date', async (req, res) => {
+  const { waistCm, hipCm } = req.body;
+  await pool.query(
+    `INSERT INTO body_measurements (id, entry_date, waist_cm, hip_cm)
+     VALUES (?,?,?,?)
+     ON DUPLICATE KEY UPDATE waist_cm=?, hip_cm=?`,
+    [uuidv4(), req.params.date, waistCm, hipCm, waistCm, hipCm]
+  );
+  const [rows] = await pool.query('SELECT * FROM body_measurements WHERE entry_date = ?', [req.params.date]);
+  res.json(normalizeMeasurement(rows[0]));
+});
+
+// ─── GOALS ────────────────────────────────────────────
+
 app.get('/api/goal', async (_req, res) => {
   const [rows] = await pool.query('SELECT * FROM daily_goals WHERE id = 1');
   if (rows.length === 0) {
-    return res.json({ calories: 2000, protein: 150, fat: 65, carbs: 200 });
+    return res.json({ calories: 2000, protein: 150, fat: 65, carbs: 200, heightCm: 170, age: 30, gender: 'male' });
   }
   res.json(normalizeGoal(rows[0]));
 });
 
 app.put('/api/goal', async (req, res) => {
-  const { calories, protein, fat, carbs } = req.body;
+  const { calories, protein, fat, carbs, heightCm, age, gender } = req.body;
   await pool.query(
-    'INSERT INTO daily_goals (id, calories, protein, fat, carbs) VALUES (1,?,?,?,?) ON DUPLICATE KEY UPDATE calories=?, protein=?, fat=?, carbs=?',
-    [calories, protein, fat, carbs, calories, protein, fat, carbs]
+    'INSERT INTO daily_goals (id, calories, protein, fat, carbs, height_cm, age, gender) VALUES (1,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE calories=?, protein=?, fat=?, carbs=?, height_cm=?, age=?, gender=?',
+    [calories, protein, fat, carbs, heightCm, age, gender, calories, protein, fat, carbs, heightCm, age, gender]
   );
   const [rows] = await pool.query('SELECT * FROM daily_goals WHERE id = 1');
   res.json(normalizeGoal(rows[0]));
@@ -273,12 +308,24 @@ function normalizeWeight(row) {
   };
 }
 
+function normalizeMeasurement(row) {
+  return {
+    id: row.id,
+    entryDate: row.entry_date instanceof Date ? row.entry_date.toISOString().slice(0, 10) : row.entry_date,
+    waistCm: row.waist_cm ? parseFloat(row.waist_cm) : null,
+    hipCm: row.hip_cm ? parseFloat(row.hip_cm) : null,
+  };
+}
+
 function normalizeGoal(row) {
   return {
     calories: row.calories,
     protein: parseFloat(row.protein),
     fat: parseFloat(row.fat),
     carbs: parseFloat(row.carbs),
+    heightCm: row.height_cm || 170,
+    age: row.age || 30,
+    gender: row.gender || 'male',
   };
 }
 

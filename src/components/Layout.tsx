@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom'
 const links = [
   { to: '/', label: 'Dashboard', icon: '📊' },
   { to: '/foods', label: 'Alimentos', icon: '🥩' },
+  { to: '/progreso', label: 'Progreso', icon: '📈' },
   { to: '/settings', label: 'Metas', icon: '⚙️' },
 ]
 

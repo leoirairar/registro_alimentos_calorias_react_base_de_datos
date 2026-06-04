@@ -34,6 +34,9 @@ export interface DailyGoal {
   protein: number;
   fat: number;
   carbs: number;
+  heightCm?: number;
+  age?: number;
+  gender?: 'male' | 'female';
 }
 
 export const DEFAULT_GOAL: DailyGoal = {
@@ -41,4 +44,7 @@ export const DEFAULT_GOAL: DailyGoal = {
   protein: 150,
   fat: 65,
   carbs: 200,
+  heightCm: 170,
+  age: 30,
+  gender: 'male',
 };

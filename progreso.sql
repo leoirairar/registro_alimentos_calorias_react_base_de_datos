@@ -1,0 +1,12 @@
+ALTER TABLE daily_goals
+  ADD COLUMN height_cm INT DEFAULT 170,
+  ADD COLUMN age INT DEFAULT 30,
+  ADD COLUMN gender VARCHAR(10) DEFAULT 'male';
+
+CREATE TABLE body_measurements (
+  id VARCHAR(36) PRIMARY KEY,
+  entry_date DATE NOT NULL UNIQUE,
+  waist_cm DECIMAL(5,1),
+  hip_cm DECIMAL(5,1),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
