@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { calcNutrients, formatDateShort } from '../utils/calculations';
@@ -7,6 +7,7 @@ import ReferenciaPesos from '../components/ReferenciaPesos';
 import GymSection from '../components/GymSection';
 import WeightSection from '../components/WeightSection';
 import DailyAnalysis from '../components/DailyAnalysis';
+import Toast from '../components/Toast';
 import type { DailyGoal } from '../types';
 
 export default function DailyLog() {
@@ -19,6 +20,8 @@ export default function DailyLog() {
   const [entries, setEntries] = useState<any[]>([]);
   const [movements, setMovements] = useState<any[]>([]);
   const [goal, setGoal] = useState<DailyGoal>({ calories: 2000, protein: 150, fat: 65, carbs: 200 });
+  const [toast, setToast] = useState<string | null>(null);
+  const closeToast = useCallback(() => setToast(null), []);
 
   const [selectedFoodId, setSelectedFoodId] = useState('');
   const [foodSearch, setFoodSearch] = useState('');
@@ -28,6 +31,7 @@ export default function DailyLog() {
   const [movementCal, setMovementCal] = useState('');
   const [steps, setSteps] = useState('');
   const [workoutData, setWorkoutData] = useState<any>({ wentToGym: false, bodyParts: [] });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const searchRef = useRef<HTMLDivElement>(null);
 
   const loadData = () => {
@@ -69,7 +73,11 @@ export default function DailyLog() {
   };
 
   const handleAddFood = async () => {
-    if (!selectedFoodId || !grams) return;
+    const e: Record<string, string> = {};
+    if (!selectedFoodId) e.food = 'Selecciona un alimento de la lista';
+    if (!grams || Number(grams) < 1 || Number(grams) > 9999) e.grams = 'Debe ser entre 1 y 9999 g';
+    setErrors(e);
+    if (Object.keys(e).length) return;
     await api.createFoodEntry({
       foodItemId: selectedFoodId,
       grams: Number(grams),
@@ -77,6 +85,9 @@ export default function DailyLog() {
     });
     loadData();
     setGrams('100');
+    setSelectedFoodId('');
+    setFoodSearch('');
+    setToast('Alimento agregado');
   };
 
   const filteredFoods = foods.filter(f =>
@@ -84,7 +95,11 @@ export default function DailyLog() {
   );
 
   const handleAddMovement = async () => {
-    if (!movementDesc || !movementCal) return;
+    const e: Record<string, string> = {};
+    if (!movementDesc.trim()) e.movementDesc = 'Describe el ejercicio';
+    if (!movementCal || Number(movementCal) < 1 || Number(movementCal) > 10000) e.movementCal = 'Debe ser entre 1 y 10000 kcal';
+    setErrors(p => ({ ...p, ...e }));
+    if (Object.keys(e).length) return;
     await api.createMovementEntry({
       description: movementDesc,
       caloriesBurned: Number(movementCal),
@@ -93,10 +108,15 @@ export default function DailyLog() {
     loadData();
     setMovementDesc('');
     setMovementCal('');
+    setErrors(p => ({ ...p, movementDesc: '', movementCal: '' }));
+    setToast('Ejercicio agregado');
   };
 
   const handleAddSteps = async () => {
-    if (!steps) return;
+    const e: Record<string, string> = {};
+    if (!steps || Number(steps) < 1 || Number(steps) > 200000) e.steps = 'Debe ser entre 1 y 200000 pasos';
+    setErrors(p => ({ ...p, ...e }));
+    if (Object.keys(e).length) return;
     const cal = Math.round(Number(steps) * 0.04);
     await api.createMovementEntry({
       description: '🚶 Pasos',
@@ -105,6 +125,8 @@ export default function DailyLog() {
     });
     loadData();
     setSteps('');
+    setErrors(p => ({ ...p, steps: '' }));
+    setToast('Pasos guardados');
   };
 
   const daySteps = dayMovements
@@ -151,10 +173,10 @@ export default function DailyLog() {
             <input
               type="text"
               value={foodSearch}
-              onChange={e => { setFoodSearch(e.target.value); setShowFoodDropdown(true); setSelectedFoodId(''); }}
+              onChange={e => { setFoodSearch(e.target.value); setShowFoodDropdown(true); setSelectedFoodId(''); setErrors(p => ({ ...p, food: '' })); }}
               onFocus={() => setShowFoodDropdown(true)}
               placeholder="🔍 Buscar alimento..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className={`w-full border rounded-lg px-3 py-2 text-sm ${errors.food ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
               onKeyDown={e => e.key === 'Escape' && setShowFoodDropdown(false)}
             />
             {showFoodDropdown && foodSearch && (
@@ -176,13 +198,14 @@ export default function DailyLog() {
                 )}
               </div>
             )}
+            {errors.food && <p className="text-red-500 text-xs mt-1">{errors.food}</p>}
           </div>
           <input
             type="number"
             value={grams}
-            onChange={e => setGrams(e.target.value)}
+            onChange={e => { setGrams(e.target.value); setErrors(p => ({ ...p, grams: '' })); }}
             placeholder="Gramos"
-            className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            className={`w-24 border rounded-lg px-3 py-2 text-sm ${errors.grams ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
           />
           <span className="text-sm text-gray-500 self-center">g</span>
           <button onClick={handleAddFood} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
@@ -228,40 +251,49 @@ export default function DailyLog() {
         </div>
       )}
 
-      <GymSection date={d} onSaved={loadData} />
+      <GymSection date={d} onSaved={() => { loadData(); setToast('Entrenamiento guardado'); }} />
 
       <div className="md:grid md:grid-cols-2 md:gap-4">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <h3 className="font-semibold mb-3">🔥 Cardio y pasos</h3>
-          <div className="flex flex-wrap gap-2 mb-3">
-            <input
-              type="text"
-              value={movementDesc}
-              onChange={e => setMovementDesc(e.target.value)}
-              placeholder="Ej: Correr 30min"
-              className="flex-1 min-w-[180px] border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            />
-            <input
-              type="number"
-              value={movementCal}
-              onChange={e => setMovementCal(e.target.value)}
-              placeholder="Calorías"
-              className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            />
-            <button onClick={handleAddMovement} className="bg-amber-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors">
+          <div className="flex flex-wrap gap-2 mb-1">
+            <div className="flex-1 min-w-[180px]">
+              <input
+                type="text"
+                value={movementDesc}
+                onChange={e => { setMovementDesc(e.target.value); setErrors(p => ({ ...p, movementDesc: '' })); }}
+                placeholder="Ej: Correr 30min"
+                className={`w-full border rounded-lg px-3 py-2 text-sm ${errors.movementDesc ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+              />
+              {errors.movementDesc && <p className="text-red-500 text-xs mt-1">{errors.movementDesc}</p>}
+            </div>
+            <div>
+              <input
+                type="number"
+                value={movementCal}
+                onChange={e => { setMovementCal(e.target.value); setErrors(p => ({ ...p, movementCal: '' })); }}
+                placeholder="Calorías"
+                className={`w-24 border rounded-lg px-3 py-2 text-sm ${errors.movementCal ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+              />
+              {errors.movementCal && <p className="text-red-500 text-xs mt-1">{errors.movementCal}</p>}
+            </div>
+            <button onClick={handleAddMovement} className="bg-amber-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors self-start">
               + Añadir
             </button>
           </div>
           <div className="flex items-center gap-2 border-t border-gray-100 pt-3">
             <span className="text-sm text-gray-500">🚶 Pasos Apple Watch:</span>
-            <input
-              type="number"
-              value={steps}
-              onChange={e => setSteps(e.target.value)}
-              placeholder="Ej: 8500"
-              className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              onKeyDown={e => e.key === 'Enter' && handleAddSteps()}
-            />
+            <div>
+              <input
+                type="number"
+                value={steps}
+                onChange={e => { setSteps(e.target.value); setErrors(p => ({ ...p, steps: '' })); }}
+                placeholder="Ej: 8500"
+                className={`w-28 border rounded-lg px-3 py-2 text-sm ${errors.steps ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                onKeyDown={e => e.key === 'Enter' && handleAddSteps()}
+              />
+              {errors.steps && <p className="text-red-500 text-xs mt-1">{errors.steps}</p>}
+            </div>
             <button onClick={handleAddSteps} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
               Guardar
             </button>
@@ -285,6 +317,8 @@ export default function DailyLog() {
         </div>
       )}
       </div>
+
+      {toast && <Toast message={toast} onClose={closeToast} />}
     </div>
   );
 }

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 import type { DailyGoal } from '../types';
+import Toast from '../components/Toast';
 
 function calcBMR(weight: number, height: number, age: number, gender: string): number {
   if (gender === 'female') {
@@ -16,6 +17,9 @@ export default function Progreso() {
   const [waist, setWaist] = useState('');
   const [hip, setHip] = useState('');
   const [waistSaved, setWaistSaved] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const closeToast = useCallback(() => setToast(null), []);
 
   useEffect(() => {
     const today = new Date();
@@ -42,6 +46,7 @@ export default function Progreso() {
 
   const lastWeight = weights.length > 0 ? weights[weights.length - 1].weightKg : 0;
   const firstWeight = weights.length > 0 ? weights[0].weightKg : 0;
+  const refWeight = goal.initialWeightKg || firstWeight;
 
   const bmr = lastWeight > 0 ? calcBMR(lastWeight, goal.heightCm || 170, goal.age || 30, goal.gender || 'male') : 0;
   const tdee = Math.round(bmr * 1.375);
@@ -70,13 +75,18 @@ export default function Progreso() {
   const firstWaist = waistEntries.length > 0 ? waistEntries[0].waistCm : 0;
   const waistChange = firstWaist && lastWaist ? (lastWaist - firstWaist).toFixed(1) : '—';
 
-  const weightDiff = firstWeight && lastWeight ? (lastWeight - firstWeight).toFixed(1) : '—';
+  const weightDiff = refWeight && lastWeight ? (lastWeight - refWeight).toFixed(1) : '—';
 
   const handleSaveWaist = async () => {
-    if (!waist) return;
+    const e: Record<string, string> = {};
+    if (!waist || Number(waist) < 40 || Number(waist) > 200) e.waist = 'Debe ser entre 40 y 200 cm';
+    if (hip && (Number(hip) < 40 || Number(hip) > 200)) e.hip = 'Debe ser entre 40 y 200 cm';
+    setErrors(e);
+    if (Object.keys(e).length) return;
     const today = new Date().toISOString().slice(0, 10);
     await api.saveMeasurement(today, { waistCm: parseFloat(waist), hipCm: hip ? parseFloat(hip) : null });
     setWaistSaved(true);
+    setToast('Medidas guardadas');
   };
 
   return (
@@ -110,22 +120,24 @@ export default function Progreso() {
             <div className="flex gap-2">
               <input
                 type="number" step="0.5"
-                value={waist} onChange={e => { setWaist(e.target.value); setWaistSaved(false); }}
+                value={waist} onChange={e => { setWaist(e.target.value); setWaistSaved(false); setErrors(p => ({ ...p, waist: '' })); }}
                 placeholder="Ej: 85"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                className={`w-full border rounded-lg px-3 py-2 text-sm ${errors.waist ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
               />
             </div>
+            {errors.waist && <p className="text-red-500 text-xs mt-1">{errors.waist}</p>}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Cadera (cm)</label>
             <div className="flex gap-2">
               <input
                 type="number" step="0.5"
-                value={hip} onChange={e => setHip(e.target.value)}
+                value={hip} onChange={e => { setHip(e.target.value); setErrors(p => ({ ...p, hip: '' })); }}
                 placeholder="Ej: 95"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                className={`w-full border rounded-lg px-3 py-2 text-sm ${errors.hip ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
               />
             </div>
+            {errors.hip && <p className="text-red-500 text-xs mt-1">{errors.hip}</p>}
           </div>
         </div>
         <button onClick={handleSaveWaist} className={`mt-3 w-full py-2 rounded-lg text-sm font-medium transition-colors ${waistSaved ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}>
@@ -136,7 +148,7 @@ export default function Progreso() {
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <div className="text-xs text-gray-500">Peso inicial</div>
-          <div className="text-lg font-bold">{firstWeight || '—'} kg</div>
+          <div className="text-lg font-bold">{refWeight || '—'} kg</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <div className="text-xs text-gray-500">Peso actual</div>
@@ -193,6 +205,8 @@ export default function Progreso() {
           </div>
         </div>
       )}
+
+      {toast && <Toast message={toast} onClose={closeToast} />}
     </div>
   );
 }

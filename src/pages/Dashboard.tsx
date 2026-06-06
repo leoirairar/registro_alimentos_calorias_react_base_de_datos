@@ -69,17 +69,11 @@ export default function Dashboard() {
     }
   }
 
-  const weightValues = Object.values(weightMap).sort((a, b) => a - b);
-  const currentWeight = weightValues.length > 0 ? weightValues[weightValues.length - 1] : 0;
-  const firstWeight = weightValues.length > 0 ? weightValues[0] : 0;
-  const weightChange = currentWeight > 0 && firstWeight > 0 ? (currentWeight - firstWeight).toFixed(1) : '—';
-  const weightChangeNum = Number(weightChange);
-
-  const initW = goal.initialWeightKg;
-  const totalLoss = initW && currentWeight > 0 ? (currentWeight - initW).toFixed(1) : null;
-  const totalLossNum = Number(totalLoss || 0);
-
   const sortedWeightEntries = [...weights].sort((a, b) => a.entryDate.localeCompare(b.entryDate));
+  const currentWeight = sortedWeightEntries.length > 0 ? sortedWeightEntries[sortedWeightEntries.length - 1].weightKg : 0;
+  const refWeight = goal.initialWeightKg || (sortedWeightEntries.length > 0 ? sortedWeightEntries[0].weightKg : 0);
+  const weightDiff = refWeight && currentWeight ? (currentWeight - refWeight).toFixed(1) : '—';
+  const weightDiffNum = Number(weightDiff);
 
   const avgProtein = daysWithProtein > 0 ? Math.round(totalProtein / daysWithProtein) : 0;
   const daysOverGoal = Object.values(dayData).filter(d => d.netCalories > d.goalCalories).length;
@@ -104,14 +98,9 @@ export default function Dashboard() {
           <div className="text-2xl font-bold text-purple-600">{currentWeight > 0 ? currentWeight : '—'}</div>
           <div className="text-xs text-gray-500">
             {currentWeight > 0 ? `${currentWeight}kg` : 'Peso'}
-            {weightChangeNum !== 0 && totalLoss === null && (
-              <span className={weightChangeNum < 0 ? 'text-green-500 ml-1' : 'text-red-500 ml-1'}>
-                ({weightChangeNum > 0 ? '+' : ''}{weightChange}kg)
-              </span>
-            )}
-            {totalLoss !== null && (
-              <span className={totalLossNum < 0 ? 'text-green-500 ml-1' : 'text-red-500 ml-1'}>
-                ({totalLossNum > 0 ? '+' : ''}{totalLoss}kg)
+            {weightDiffNum !== 0 && (
+              <span className={weightDiffNum < 0 ? 'text-green-500 ml-1' : 'text-red-500 ml-1'}>
+                ({weightDiffNum > 0 ? '+' : ''}{weightDiff}kg)
               </span>
             )}
           </div>
@@ -125,7 +114,7 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {sortedWeightEntries.map(w => {
-              const delta = initW ? (w.weightKg - initW).toFixed(1) : null;
+              const delta = refWeight ? (w.weightKg - refWeight).toFixed(1) : null;
               const deltaNum = Number(delta || 0);
               return (
                 <div key={w.entryDate} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
