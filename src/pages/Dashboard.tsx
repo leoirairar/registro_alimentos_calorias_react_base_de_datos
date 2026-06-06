@@ -75,6 +75,12 @@ export default function Dashboard() {
   const weightChange = currentWeight > 0 && firstWeight > 0 ? (currentWeight - firstWeight).toFixed(1) : '—';
   const weightChangeNum = Number(weightChange);
 
+  const initW = goal.initialWeightKg;
+  const totalLoss = initW && currentWeight > 0 ? (currentWeight - initW).toFixed(1) : null;
+  const totalLossNum = Number(totalLoss || 0);
+
+  const sortedWeightEntries = [...weights].sort((a, b) => a.entryDate.localeCompare(b.entryDate));
+
   const avgProtein = daysWithProtein > 0 ? Math.round(totalProtein / daysWithProtein) : 0;
   const daysOverGoal = Object.values(dayData).filter(d => d.netCalories > d.goalCalories).length;
   const daysLogged = Object.values(dayData).filter(d => d.netCalories > 0).length;
@@ -98,13 +104,43 @@ export default function Dashboard() {
           <div className="text-2xl font-bold text-purple-600">{currentWeight > 0 ? currentWeight : '—'}</div>
           <div className="text-xs text-gray-500">
             {currentWeight > 0 ? `${currentWeight}kg` : 'Peso'}
-            {weightChangeNum !== 0 && (
+            {weightChangeNum !== 0 && totalLoss === null && (
               <span className={weightChangeNum < 0 ? 'text-green-500 ml-1' : 'text-red-500 ml-1'}>
                 ({weightChangeNum > 0 ? '+' : ''}{weightChange}kg)
               </span>
             )}
+            {totalLoss !== null && (
+              <span className={totalLossNum < 0 ? 'text-green-500 ml-1' : 'text-red-500 ml-1'}>
+                ({totalLossNum > 0 ? '+' : ''}{totalLoss}kg)
+              </span>
+            )}
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <h3 className="font-semibold text-sm text-gray-600 mb-3">⚖️ Registro de peso diario</h3>
+        {sortedWeightEntries.length === 0 ? (
+          <p className="text-sm text-gray-400">Sin registros este mes</p>
+        ) : (
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {sortedWeightEntries.map(w => {
+              const delta = initW ? (w.weightKg - initW).toFixed(1) : null;
+              const deltaNum = Number(delta || 0);
+              return (
+                <div key={w.entryDate} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
+                  <span className="text-gray-500">{w.entryDate}</span>
+                  <span className="font-medium">{w.weightKg} kg</span>
+                  {delta !== null && (
+                    <span className={deltaNum <= 0 ? 'text-green-600 text-xs' : 'text-red-500 text-xs'}>
+                      {deltaNum > 0 ? '+' : ''}{delta} kg
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <Calendar

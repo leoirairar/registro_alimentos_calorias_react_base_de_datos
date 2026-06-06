@@ -37,6 +37,7 @@ export interface DailyGoal {
   heightCm?: number;
   age?: number;
   gender?: 'male' | 'female';
+  initialWeightKg?: number | null;
 }
 
 export const DEFAULT_GOAL: DailyGoal = {
@@ -47,4 +48,5 @@ export const DEFAULT_GOAL: DailyGoal = {
   heightCm: 170,
   age: 30,
   gender: 'male',
+  initialWeightKg: null,
 };

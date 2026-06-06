@@ -250,10 +250,10 @@ app.get('/api/goal', async (_req, res) => {
 });
 
 app.put('/api/goal', async (req, res) => {
-  const { calories, protein, fat, carbs, heightCm, age, gender } = req.body;
+  const { calories, protein, fat, carbs, heightCm, age, gender, initialWeightKg } = req.body;
   await pool.query(
-    'INSERT INTO daily_goals (id, calories, protein, fat, carbs, height_cm, age, gender) VALUES (1,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE calories=?, protein=?, fat=?, carbs=?, height_cm=?, age=?, gender=?',
-    [calories, protein, fat, carbs, heightCm, age, gender, calories, protein, fat, carbs, heightCm, age, gender]
+    'INSERT INTO daily_goals (id, calories, protein, fat, carbs, height_cm, age, gender, initial_weight_kg) VALUES (1,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE calories=?, protein=?, fat=?, carbs=?, height_cm=?, age=?, gender=?, initial_weight_kg=?',
+    [calories, protein, fat, carbs, heightCm, age, gender, initialWeightKg, calories, protein, fat, carbs, heightCm, age, gender, initialWeightKg]
   );
   const [rows] = await pool.query('SELECT * FROM daily_goals WHERE id = 1');
   res.json(normalizeGoal(rows[0]));
@@ -326,6 +326,7 @@ function normalizeGoal(row) {
     heightCm: row.height_cm || 170,
     age: row.age || 30,
     gender: row.gender || 'male',
+    initialWeightKg: row.initial_weight_kg ? parseFloat(row.initial_weight_kg) : null,
   };
 }
 
