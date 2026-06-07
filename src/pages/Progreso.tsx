@@ -11,6 +11,25 @@ function calcBMR(weight: number, height: number, age: number, gender: string): n
   return Math.round(10 * weight + 6.25 * height - 5 * age + 5);
 }
 
+function getWeekId(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  const y = d.getFullYear();
+  const jan1 = new Date(y, 0, 1);
+  const days = Math.floor((d.getTime() - jan1.getTime()) / 86400000);
+  return `${y}-W${String(Math.ceil((days + jan1.getDay() + 1) / 7)).padStart(2, '0')}`;
+}
+
+function formatWeekRange(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  const day = d.getDay();
+  const mon = new Date(d);
+  mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  const opt = { day: 'numeric', month: 'short' } as const;
+  return `${mon.toLocaleDateString('es-ES', opt)} - ${sun.toLocaleDateString('es-ES', opt)}`;
+}
+
 export default function Progreso() {
   const [goal, setGoal] = useState<DailyGoal>({ calories: 2000, protein: 150, fat: 65, carbs: 200, fiber: 25, heightCm: 170, age: 30, gender: 'male' });
   const [weights, setWeights] = useState<any[]>([]);
@@ -20,6 +39,7 @@ export default function Progreso() {
   const [waistSaved, setWaistSaved] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
   const closeToast = useCallback(() => setToast(null), []);
 
   useEffect(() => {
@@ -71,6 +91,14 @@ export default function Progreso() {
     }
   }
 
+  const weekMap = new Map<string, any[]>();
+  for (const w of weights) {
+    const wid = getWeekId(w.entryDate);
+    if (!weekMap.has(wid)) weekMap.set(wid, []);
+    weekMap.get(wid)!.push(w);
+  }
+  const weeks = Array.from(weekMap.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+
   const waistEntries = measurements.filter(m => m.waistCm);
   const lastWaist = waistEntries.length > 0 ? waistEntries[waistEntries.length - 1].waistCm : 0;
   const firstWaist = waistEntries.length > 0 ? waistEntries[0].waistCm : 0;
@@ -94,11 +122,7 @@ export default function Progreso() {
     <div className="space-y-4 max-w-2xl mx-auto">
       <h2 className="text-xl font-bold">📈 Progreso</h2>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-          <div className="text-lg font-bold text-purple-600">{bmr}</div>
-          <div className="text-xs text-gray-500">TMB (BMR)</div>
-        </div>
+      <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-lg font-bold text-blue-500">{tdee}</div>
           <div className="text-xs text-gray-500">Gasto total</div>
@@ -107,18 +131,14 @@ export default function Progreso() {
           <div className={`text-lg font-bold ${avgCal < tdee ? 'text-green-500' : 'text-red-500'}`}>{avgCal}</div>
           <div className="text-xs text-gray-500">Tu meta</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-          {dailyDeficit > 0 ? (
-            <div className="text-lg font-bold text-amber-600">{fmt(dailyDeficit * 7)} kcal/semana</div>
-          ) : (
-            <div className="text-lg font-bold text-gray-400">—</div>
-          )}
-          <div className="text-xs text-gray-500">Déficit semanal</div>
-        </div>
       </div>
 
       {dailyDeficit > 0 && (
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+            <div className="text-lg font-bold text-amber-600">{fmt(dailyDeficit * 7)} kcal/semana</div>
+            <div className="text-xs text-gray-500">Déficit semanal</div>
+          </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
             <div className="text-lg font-bold text-green-600">~{weeklyLossG.toFixed(0)} g/semana</div>
             <div className="text-xs text-gray-500">Pérdida estimada</div>
@@ -216,6 +236,91 @@ export default function Progreso() {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {weeks.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <h3 className="font-semibold mb-3 text-sm text-gray-600">📅 Registro semanal</h3>
+          <div className="space-y-1">
+            {weeks.map(([wid, wEntries]) => {
+              const first = wEntries[0].weightKg;
+              const last = wEntries[wEntries.length - 1].weightKg;
+              const change = last - first;
+              const open = expandedWeek === wid;
+              const weekMeas = measurements.filter(m => {
+                if (!m.waistCm) return false;
+                const mWeek = getWeekId(m.entryDate);
+                return mWeek === wid;
+              });
+              const firstWaistW = weekMeas.length > 0 ? weekMeas[0].waistCm : null;
+              const lastWaistW = weekMeas.length > 0 ? weekMeas[weekMeas.length - 1].waistCm : null;
+              const waistChangeW = firstWaistW && lastWaistW ? (lastWaistW - firstWaistW).toFixed(1) : null;
+              return (
+                <div key={wid}>
+                  <button
+                    onClick={() => setExpandedWeek(open ? null : wid)}
+                    className="w-full flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`transform transition-transform ${open ? 'rotate-90' : ''}`}>▶</span>
+                      <span className="font-medium">{formatWeekRange(wEntries[0].entryDate)}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <span>{first.toFixed(1)} kg</span>
+                      <span className="text-gray-300">→</span>
+                      <span className={change < 0 ? 'text-green-600 font-medium' : change > 0 ? 'text-red-600 font-medium' : ''}>
+                        {last.toFixed(1)} kg
+                      </span>
+                      <span className={`text-xs ${change < 0 ? 'text-green-500' : change > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                        {change > 0 ? '+' : ''}{change.toFixed(1)}
+                      </span>
+                    </div>
+                  </button>
+                  {open && (
+                    <div className="ml-6 pb-3 space-y-2">
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        <div className="bg-gray-50 rounded-lg p-2 text-center">
+                          <div className="text-xs text-gray-500">Inicio</div>
+                          <div className="text-sm font-bold">{first.toFixed(1)} kg</div>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-2 text-center">
+                          <div className="text-xs text-gray-500">Actual</div>
+                          <div className="text-sm font-bold">{last.toFixed(1)} kg</div>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-2 text-center">
+                          <div className="text-xs text-gray-500">Cambio</div>
+                          <div className={`text-sm font-bold ${change < 0 ? 'text-green-600' : change > 0 ? 'text-red-600' : ''}`}>
+                            {change > 0 ? '+' : ''}{change.toFixed(1)} kg
+                          </div>
+                        </div>
+                        {waistChangeW && (
+                          <div className="bg-gray-50 rounded-lg p-2 text-center">
+                            <div className="text-xs text-gray-500">Cintura</div>
+                            <div className={`text-sm font-bold ${Number(waistChangeW) < 0 ? 'text-green-600' : Number(waistChangeW) > 0 ? 'text-red-600' : ''}`}>
+                              {Number(waistChangeW) > 0 ? '+' : ''}{waistChangeW} cm
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="border-t border-gray-100 pt-2 space-y-1">
+                        {wEntries.map((entry: any) => {
+                          const d = new Date(entry.entryDate + 'T12:00:00');
+                          const dayName = d.toLocaleDateString('es-ES', { weekday: 'short' });
+                          return (
+                            <div key={entry.id} className="flex items-center justify-between text-xs py-1 px-2 text-gray-500">
+                              <span className="capitalize">{dayName} {d.getDate()}</span>
+                              <span className="font-medium text-gray-700">{entry.weightKg.toFixed(1)} kg</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
