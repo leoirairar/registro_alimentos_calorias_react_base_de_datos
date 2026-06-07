@@ -1,6 +1,8 @@
+import { fmt } from '../utils/calculations';
+
 interface Props {
-  totals: { calories: number; protein: number; fat: number; carbs: number; caloriesBurned: number };
-  goal: { calories: number; protein: number; fat: number; carbs: number };
+  totals: { calories: number; protein: number; fat: number; carbs: number; fiber: number; caloriesBurned: number };
+  goal: { calories: number; protein: number; fat: number; carbs: number; fiber: number };
   wentToGym: boolean;
   bodyParts: string[];
   steps: number;
@@ -17,15 +19,16 @@ export default function DailyAnalysis({ totals, goal, wentToGym, bodyParts, step
     feedback.push({ label: 'Proteína completa', color: 'text-emerald-600', icon: '✅' });
   } else {
     const falta = Math.round(goal.protein - totals.protein);
-    feedback.push({ label: `Faltan ${falta}g de proteína`, color: 'text-amber-600', icon: '⚠️' });
+    feedback.push({ label: `Faltan ${fmt(falta)}g de proteína`, color: 'text-amber-600', icon: '⚠️' });
   }
 
-  if (netCal <= goal.calories * 1.05 && netCal >= goal.calories * 0.85) {
-    feedback.push({ label: 'Calorías en rango', color: 'text-emerald-600', icon: '✅' });
-  } else if (netCal > goal.calories * 1.05) {
-    feedback.push({ label: `Excediste ${netCal - goal.calories} kcal`, color: 'text-red-500', icon: '🔴' });
+  const calDiff = netCal - goal.calories;
+  if (calDiff > 100) {
+    feedback.push({ label: `Excediste ${fmt(calDiff)} kcal`, color: 'text-red-500', icon: '🔴' });
+  } else if (calDiff < -100) {
+    feedback.push({ label: `Déficit de ${fmt(Math.abs(calDiff))} kcal`, color: 'text-green-600', icon: '✅' });
   } else {
-    feedback.push({ label: `Déficit de ${goal.calories - netCal} kcal`, color: 'text-blue-500', icon: '🔵' });
+    feedback.push({ label: `${calDiff >= 0 ? '+' : ''}${fmt(calDiff)} kcal — en rango`, color: 'text-amber-500', icon: '🟡' });
   }
 
   if (wentToGym) {
@@ -35,16 +38,16 @@ export default function DailyAnalysis({ totals, goal, wentToGym, bodyParts, step
   }
 
   if (steps >= 10000) {
-    feedback.push({ label: `${steps.toLocaleString()} pasos — meta cumplida`, color: 'text-emerald-600', icon: '🚶' });
+    feedback.push({ label: `${fmt(steps)} pasos — meta cumplida`, color: 'text-emerald-600', icon: '🚶' });
   } else if (steps > 0) {
     const falta = 10000 - steps;
-    feedback.push({ label: `${steps.toLocaleString()} pasos — faltan ${falta}`, color: 'text-amber-600', icon: '🚶' });
+    feedback.push({ label: `${fmt(steps)} pasos — faltan ${fmt(falta)}`, color: 'text-amber-600', icon: '🚶' });
   } else {
     feedback.push({ label: 'Sin registro de pasos', color: 'text-gray-400', icon: '🚶' });
   }
 
   if (totals.caloriesBurned > 0) {
-    feedback.push({ label: `${totals.caloriesBurned} kcal quemadas`, color: 'text-amber-600', icon: '🔥' });
+    feedback.push({ label: `${fmt(totals.caloriesBurned)} kcal quemadas`, color: 'text-amber-600', icon: '🔥' });
   }
 
   return (
@@ -58,7 +61,7 @@ export default function DailyAnalysis({ totals, goal, wentToGym, bodyParts, step
           </div>
         ))}
       </div>
-      <div className="mt-3 grid grid-cols-4 gap-1 text-center text-[10px]">
+      <div className="mt-3 grid grid-cols-5 gap-1 text-center text-[10px]">
         <div>
           <div className={`font-medium ${proPct >= 100 ? 'text-emerald-600' : 'text-amber-600'}`}>{proPct}%</div>
           <div className="text-gray-400">Proteína</div>
@@ -78,6 +81,12 @@ export default function DailyAnalysis({ totals, goal, wentToGym, bodyParts, step
             {goal.fat > 0 ? Math.round((totals.fat / goal.fat) * 100) : 0}%
           </div>
           <div className="text-gray-400">Grasas</div>
+        </div>
+        <div>
+          <div className={`font-medium ${totals.fiber >= goal.fiber ? 'text-emerald-600' : 'text-amber-600'}`}>
+            {goal.fiber > 0 ? Math.round((totals.fiber / goal.fiber) * 100) : 0}%
+          </div>
+          <div className="text-gray-400">Fibra</div>
         </div>
       </div>
     </div>

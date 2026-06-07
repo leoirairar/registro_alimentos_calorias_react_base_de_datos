@@ -7,7 +7,7 @@ export default function Foods() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', caloriesPer100g: '', proteinPer100g: '', fatPer100g: '', carbsPer100g: '' });
+  const [form, setForm] = useState({ name: '', caloriesPer100g: '', proteinPer100g: '', fatPer100g: '', carbsPer100g: '', fiberPer100g: '' });
   const [toast, setToast] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const closeToast = useCallback(() => setToast(null), []);
@@ -16,7 +16,7 @@ export default function Foods() {
   useEffect(() => { refresh(); }, []);
 
   const resetForm = () => {
-    setForm({ name: '', caloriesPer100g: '', proteinPer100g: '', fatPer100g: '', carbsPer100g: '' });
+    setForm({ name: '', caloriesPer100g: '', proteinPer100g: '', fatPer100g: '', carbsPer100g: '', fiberPer100g: '' });
     setEditingId(null);
     setShowForm(false);
     setErrors({});
@@ -29,6 +29,7 @@ export default function Foods() {
     if (form.proteinPer100g && (Number(form.proteinPer100g) < 0 || Number(form.proteinPer100g) > 100)) e.proteinPer100g = 'Debe ser entre 0 y 100';
     if (form.fatPer100g && (Number(form.fatPer100g) < 0 || Number(form.fatPer100g) > 100)) e.fatPer100g = 'Debe ser entre 0 y 100';
     if (form.carbsPer100g && (Number(form.carbsPer100g) < 0 || Number(form.carbsPer100g) > 100)) e.carbsPer100g = 'Debe ser entre 0 y 100';
+    if (form.fiberPer100g && (Number(form.fiberPer100g) < 0 || Number(form.fiberPer100g) > 100)) e.fiberPer100g = 'Debe ser entre 0 y 100';
     setErrors(e);
     if (Object.keys(e).length) return;
     const data = {
@@ -37,6 +38,7 @@ export default function Foods() {
       proteinPer100g: Number(form.proteinPer100g) || 0,
       fatPer100g: Number(form.fatPer100g) || 0,
       carbsPer100g: Number(form.carbsPer100g) || 0,
+      fiberPer100g: Number(form.fiberPer100g) || 0,
     };
     if (editingId) {
       await api.updateFood(editingId, data);
@@ -56,6 +58,7 @@ export default function Foods() {
       proteinPer100g: String(f.proteinPer100g),
       fatPer100g: String(f.fatPer100g),
       carbsPer100g: String(f.carbsPer100g),
+      fiberPer100g: String(f.fiberPer100g || 0),
     });
     setEditingId(f.id);
     setShowForm(true);
@@ -136,6 +139,17 @@ export default function Foods() {
               />
               {errors.carbsPer100g && <p className="text-red-500 text-xs mt-1">{errors.carbsPer100g}</p>}
             </div>
+            <div>
+              <label className="text-xs text-gray-500">Fibra (100g)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={form.fiberPer100g}
+                onChange={e => { setForm({ ...form, fiberPer100g: e.target.value }); setErrors(p => ({ ...p, fiberPer100g: '' })); }}
+                className={`w-full border rounded-lg px-3 py-2 text-sm ${errors.fiberPer100g ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+              />
+              {errors.fiberPer100g && <p className="text-red-500 text-xs mt-1">{errors.fiberPer100g}</p>}
+            </div>
           </div>
           <div className="flex gap-2">
             <button onClick={handleSubmit} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
@@ -165,7 +179,7 @@ export default function Foods() {
                 <div>
                   <div className="font-medium text-sm">{f.name}</div>
                   <div className="text-xs text-gray-400">
-                    {f.caloriesPer100g} cal · {f.proteinPer100g}g prot · {f.fatPer100g}g grasas · {f.carbsPer100g}g carbs /100g
+                    {f.caloriesPer100g} cal · {f.proteinPer100g}g prot · {f.fatPer100g}g grasas · {f.carbsPer100g}g carbs · {f.fiberPer100g || 0}g fibra /100g
                   </div>
                 </div>
                 <div className="flex gap-1">

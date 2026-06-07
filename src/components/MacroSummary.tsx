@@ -1,4 +1,5 @@
 import type { DailyGoal, DailyTotals } from '../types';
+import { fmt } from '../utils/calculations';
 
 interface Props {
   totals: DailyTotals;
@@ -27,15 +28,20 @@ export default function MacroSummary({ totals, goal, date }: Props) {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
       <div className="flex items-center justify-between text-sm text-gray-500">
         <span>{date}</span>
-        <span className="font-medium text-gray-700">
-          {netCalories >= 0 ? `${netCalories} kcal` : `${Math.abs(netCalories)} kcal deficit`}
+        <span className={`font-medium ${(() => {
+          const diff = netCalories - goal.calories;
+          if (diff > 100) return 'text-red-500';
+          if (diff < -100) return 'text-green-600';
+          return 'text-amber-500';
+        })()}`}>
+          {netCalories >= 0 ? `${fmt(netCalories)} kcal` : `${fmt(Math.abs(netCalories))} kcal deficit`}
         </span>
       </div>
 
       <div>
         <div className="flex justify-between text-sm">
           <span>Calorías</span>
-          <span>{netCalories} / {goal.calories} ({pctCal}%)</span>
+          <span>{fmt(netCalories)} / {fmt(goal.calories)} ({pctCal}%)</span>
         </div>
         {bar(pctCal, 'bg-emerald-500')}
       </div>
@@ -43,7 +49,7 @@ export default function MacroSummary({ totals, goal, date }: Props) {
       <div>
         <div className="flex justify-between text-sm">
           <span>Proteínas</span>
-          <span>{totals.protein}g / {goal.protein}g ({pctPro}%)</span>
+          <span>{fmt(totals.protein, 1)}g / {fmt(goal.protein)}g ({pctPro}%)</span>
         </div>
         {bar(pctPro, 'bg-blue-500')}
       </div>
@@ -51,7 +57,7 @@ export default function MacroSummary({ totals, goal, date }: Props) {
       <div>
         <div className="flex justify-between text-sm">
           <span>Grasas</span>
-          <span>{totals.fat}g / {goal.fat}g ({pctFat}%)</span>
+          <span>{fmt(totals.fat, 1)}g / {fmt(goal.fat)}g ({pctFat}%)</span>
         </div>
         {bar(pctFat, 'bg-amber-500')}
       </div>
@@ -59,14 +65,22 @@ export default function MacroSummary({ totals, goal, date }: Props) {
       <div>
         <div className="flex justify-between text-sm">
           <span>Carbohidratos</span>
-          <span>{totals.carbs}g / {goal.carbs}g ({pctCarbs}%)</span>
+          <span>{fmt(totals.carbs, 1)}g / {fmt(goal.carbs)}g ({pctCarbs}%)</span>
         </div>
         {bar(pctCarbs, 'bg-rose-500')}
       </div>
 
+      <div>
+        <div className="flex justify-between text-sm">
+          <span>Fibra</span>
+          <span>{fmt(totals.fiber, 1)}g / {fmt(goal.fiber)}g ({Math.round((totals.fiber / goal.fiber) * 100) || 0}%)</span>
+        </div>
+        {bar(Math.round((totals.fiber / goal.fiber) * 100), 'bg-lime-500')}
+      </div>
+
       {totals.caloriesBurned > 0 && (
         <div className="text-xs text-gray-400 pt-1 border-t border-gray-100">
-          🔥 {totals.caloriesBurned} kcal quemadas con ejercicio
+          🔥 {fmt(totals.caloriesBurned)} kcal quemadas con ejercicio
         </div>
       )}
     </div>

@@ -26,21 +26,21 @@ app.get('/api/foods', async (_req, res) => {
 });
 
 app.post('/api/foods', async (req, res) => {
-  const { name, caloriesPer100g, proteinPer100g, fatPer100g, carbsPer100g } = req.body;
+  const { name, caloriesPer100g, proteinPer100g, fatPer100g, carbsPer100g, fiberPer100g } = req.body;
   const id = uuidv4();
   await pool.query(
-    'INSERT INTO foods (id, name, calories_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g) VALUES (?,?,?,?,?,?)',
-    [id, name, caloriesPer100g, proteinPer100g, fatPer100g, carbsPer100g]
+    'INSERT INTO foods (id, name, calories_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g, fiber_per_100g) VALUES (?,?,?,?,?,?,?)',
+    [id, name, caloriesPer100g, proteinPer100g, fatPer100g, carbsPer100g, fiberPer100g || 0]
   );
   const [rows] = await pool.query('SELECT * FROM foods WHERE id = ?', [id]);
   res.status(201).json(normalizeFood(rows[0]));
 });
 
 app.put('/api/foods/:id', async (req, res) => {
-  const { name, caloriesPer100g, proteinPer100g, fatPer100g, carbsPer100g } = req.body;
+  const { name, caloriesPer100g, proteinPer100g, fatPer100g, carbsPer100g, fiberPer100g } = req.body;
   await pool.query(
-    'UPDATE foods SET name=?, calories_per_100g=?, protein_per_100g=?, fat_per_100g=?, carbs_per_100g=? WHERE id=?',
-    [name, caloriesPer100g, proteinPer100g, fatPer100g, carbsPer100g, req.params.id]
+    'UPDATE foods SET name=?, calories_per_100g=?, protein_per_100g=?, fat_per_100g=?, carbs_per_100g=?, fiber_per_100g=? WHERE id=?',
+    [name, caloriesPer100g, proteinPer100g, fatPer100g, carbsPer100g, fiberPer100g || 0, req.params.id]
   );
   const [rows] = await pool.query('SELECT * FROM foods WHERE id = ?', [req.params.id]);
   res.json(normalizeFood(rows[0]));
@@ -244,16 +244,16 @@ app.put('/api/measurement/:date', async (req, res) => {
 app.get('/api/goal', async (_req, res) => {
   const [rows] = await pool.query('SELECT * FROM daily_goals WHERE id = 1');
   if (rows.length === 0) {
-    return res.json({ calories: 2000, protein: 150, fat: 65, carbs: 200, heightCm: 170, age: 30, gender: 'male' });
+    return res.json({ calories: 2000, protein: 150, fat: 65, carbs: 200, fiber: 25, heightCm: 170, age: 30, gender: 'male', locale: 'es-CL' });
   }
   res.json(normalizeGoal(rows[0]));
 });
 
 app.put('/api/goal', async (req, res) => {
-  const { calories, protein, fat, carbs, heightCm, age, gender, initialWeightKg } = req.body;
+  const { calories, protein, fat, carbs, fiber, heightCm, age, gender, initialWeightKg, locale } = req.body;
   await pool.query(
-    'INSERT INTO daily_goals (id, calories, protein, fat, carbs, height_cm, age, gender, initial_weight_kg) VALUES (1,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE calories=?, protein=?, fat=?, carbs=?, height_cm=?, age=?, gender=?, initial_weight_kg=?',
-    [calories, protein, fat, carbs, heightCm, age, gender, initialWeightKg, calories, protein, fat, carbs, heightCm, age, gender, initialWeightKg]
+    'INSERT INTO daily_goals (id, calories, protein, fat, carbs, fiber, height_cm, age, gender, initial_weight_kg, locale) VALUES (1,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE calories=?, protein=?, fat=?, carbs=?, fiber=?, height_cm=?, age=?, gender=?, initial_weight_kg=?, locale=?',
+    [calories, protein, fat, carbs, fiber, heightCm, age, gender, initialWeightKg, locale || 'es-CL', calories, protein, fat, carbs, fiber, heightCm, age, gender, initialWeightKg, locale || 'es-CL']
   );
   const [rows] = await pool.query('SELECT * FROM daily_goals WHERE id = 1');
   res.json(normalizeGoal(rows[0]));
@@ -269,7 +269,18 @@ function normalizeFood(row) {
     proteinPer100g: parseFloat(row.protein_per_100g),
     fatPer100g: parseFloat(row.fat_per_100g),
     carbsPer100g: parseFloat(row.carbs_per_100g),
+    fiberPer100g: parseFloat(row.fiber_per_100g || 0),
   };
+}
+
+function toLocalDatetime(dt) {
+  if (typeof dt === 'string') return dt.slice(0, 16).replace(' ', 'T');
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const d = String(dt.getDate()).padStart(2, '0');
+  const h = String(dt.getHours()).padStart(2, '0');
+  const min = String(dt.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${d}T${h}:${min}`;
 }
 
 function normalizeFoodEntry(row) {
@@ -277,7 +288,7 @@ function normalizeFoodEntry(row) {
     id: row.id,
     foodItemId: row.food_item_id,
     grams: parseFloat(row.grams),
-    datetime: row.datetime instanceof Date ? row.datetime.toISOString().slice(0, 16) : new Date(row.datetime).toISOString().slice(0, 16),
+    datetime: toLocalDatetime(row.datetime),
   };
 }
 
@@ -286,7 +297,7 @@ function normalizeMovementEntry(row) {
     id: row.id,
     description: row.description,
     caloriesBurned: row.calories_burned,
-    datetime: row.datetime instanceof Date ? row.datetime.toISOString().slice(0, 16) : new Date(row.datetime).toISOString().slice(0, 16),
+    datetime: toLocalDatetime(row.datetime),
   };
 }
 
@@ -323,10 +334,12 @@ function normalizeGoal(row) {
     protein: parseFloat(row.protein),
     fat: parseFloat(row.fat),
     carbs: parseFloat(row.carbs),
+    fiber: row.fiber || 25,
     heightCm: row.height_cm || 170,
     age: row.age || 30,
     gender: row.gender || 'male',
     initialWeightKg: row.initial_weight_kg ? parseFloat(row.initial_weight_kg) : null,
+    locale: row.locale || 'es-CL',
   };
 }
 

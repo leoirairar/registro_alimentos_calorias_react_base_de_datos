@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Calendar from '../components/Calendar';
 import { api } from '../api/client';
-import { calcDailyTotals, getMonthDays } from '../utils/calculations';
+import { calcDailyTotals, getMonthDays, fmt } from '../utils/calculations';
 import type { DailyGoal } from '../types';
 
 export default function Dashboard() {
@@ -15,7 +15,7 @@ export default function Dashboard() {
   const [movementEntries, setMovementEntries] = useState<any[]>([]);
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [weights, setWeights] = useState<any[]>([]);
-  const [goal, setGoal] = useState<DailyGoal>({ calories: 2000, protein: 150, fat: 65, carbs: 200 });
+  const [goal, setGoal] = useState<DailyGoal>({ calories: 2000, protein: 150, fat: 65, carbs: 200, fiber: 25 });
 
   useEffect(() => {
     const days = getMonthDays(year, month);
@@ -83,7 +83,7 @@ export default function Dashboard() {
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-          <div className="text-2xl font-bold text-blue-500">{avgProtein}g</div>
+          <div className="text-2xl font-bold text-blue-500">{fmt(avgProtein)}g</div>
           <div className="text-xs text-gray-500">Proteínas / día</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
@@ -95,42 +95,19 @@ export default function Dashboard() {
           <div className="text-xs text-gray-500">Días sobre meta</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-          <div className="text-2xl font-bold text-purple-600">{currentWeight > 0 ? currentWeight : '—'}</div>
+          <div className="text-2xl font-bold text-purple-600">{currentWeight > 0 ? fmt(currentWeight) : '—'}</div>
           <div className="text-xs text-gray-500">
-            {currentWeight > 0 ? `${currentWeight}kg` : 'Peso'}
+            {currentWeight > 0 ? `${fmt(currentWeight)}kg` : 'Peso'}
             {weightDiffNum !== 0 && (
               <span className={weightDiffNum < 0 ? 'text-green-500 ml-1' : 'text-red-500 ml-1'}>
-                ({weightDiffNum > 0 ? '+' : ''}{weightDiff}kg)
+                ({weightDiffNum > 0 ? '+' : ''}{fmt(Math.abs(weightDiffNum), 1)}kg)
               </span>
             )}
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <h3 className="font-semibold text-sm text-gray-600 mb-3">⚖️ Registro de peso diario</h3>
-        {sortedWeightEntries.length === 0 ? (
-          <p className="text-sm text-gray-400">Sin registros este mes</p>
-        ) : (
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {sortedWeightEntries.map(w => {
-              const delta = refWeight ? (w.weightKg - refWeight).toFixed(1) : null;
-              const deltaNum = Number(delta || 0);
-              return (
-                <div key={w.entryDate} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
-                  <span className="text-gray-500">{w.entryDate}</span>
-                  <span className="font-medium">{w.weightKg} kg</span>
-                  {delta !== null && (
-                    <span className={deltaNum <= 0 ? 'text-green-600 text-xs' : 'text-red-500 text-xs'}>
-                      {deltaNum > 0 ? '+' : ''}{delta} kg
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+
 
       <Calendar
         year={year}

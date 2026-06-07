@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
+import { fmt } from '../utils/calculations';
 import type { DailyGoal } from '../types';
 import Toast from '../components/Toast';
 
@@ -11,7 +12,7 @@ function calcBMR(weight: number, height: number, age: number, gender: string): n
 }
 
 export default function Progreso() {
-  const [goal, setGoal] = useState<DailyGoal>({ calories: 2000, protein: 150, fat: 65, carbs: 200, heightCm: 170, age: 30, gender: 'male' });
+  const [goal, setGoal] = useState<DailyGoal>({ calories: 2000, protein: 150, fat: 65, carbs: 200, fiber: 25, heightCm: 170, age: 30, gender: 'male' });
   const [weights, setWeights] = useState<any[]>([]);
   const [measurements, setMeasurements] = useState<any[]>([]);
   const [waist, setWaist] = useState('');
@@ -107,10 +108,23 @@ export default function Progreso() {
           <div className="text-xs text-gray-500">Tu meta</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-          <div className="text-lg font-bold text-amber-600">{dailyDeficit > 0 ? `${dailyDeficit}` : '—'}</div>
-          <div className="text-xs text-gray-500">Déficit diario</div>
+          {dailyDeficit > 0 ? (
+            <div className="text-lg font-bold text-amber-600">{fmt(dailyDeficit * 7)} kcal/semana</div>
+          ) : (
+            <div className="text-lg font-bold text-gray-400">—</div>
+          )}
+          <div className="text-xs text-gray-500">Déficit semanal</div>
         </div>
       </div>
+
+      {dailyDeficit > 0 && (
+        <div className="grid grid-cols-1 gap-3">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+            <div className="text-lg font-bold text-green-600">~{weeklyLossG.toFixed(0)} g/semana</div>
+            <div className="text-xs text-gray-500">Pérdida estimada</div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <h3 className="font-semibold mb-3 text-sm text-gray-600">📏 Medidas corporales</h3>

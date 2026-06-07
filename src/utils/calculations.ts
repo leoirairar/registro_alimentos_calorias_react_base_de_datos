@@ -4,9 +4,10 @@ export function calcNutrients(foodItem: FoodItem, grams: number) {
   const factor = grams / 100;
   return {
     calories: Math.round(foodItem.caloriesPer100g * factor),
-    protein: Math.round(foodItem.proteinPer100g * factor * 10) / 10,
-    fat: Math.round(foodItem.fatPer100g * factor * 10) / 10,
-    carbs: Math.round(foodItem.carbsPer100g * factor * 10) / 10,
+    protein: Math.round(foodItem.proteinPer100g * factor * 100) / 100,
+    fat: Math.round(foodItem.fatPer100g * factor * 100) / 100,
+    carbs: Math.round(foodItem.carbsPer100g * factor * 100) / 100,
+    fiber: Math.round(foodItem.fiberPer100g * factor * 100) / 100,
   };
 }
 
@@ -19,7 +20,7 @@ export function calcDailyTotals(
   const dayFoods = foodEntries.filter(e => e.datetime.startsWith(dateStr));
   const dayMovements = movementEntries.filter(e => e.datetime.startsWith(dateStr));
 
-  const totals = { calories: 0, protein: 0, fat: 0, carbs: 0 };
+  const totals = { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0 };
 
   for (const entry of dayFoods) {
     const food = foods.find(f => f.id === entry.foodItemId);
@@ -46,7 +47,12 @@ export function calcRemaining(totals: DailyTotals, goal: DailyGoal) {
     protein: Math.max(0, goal.protein - totals.protein),
     fat: Math.max(0, goal.fat - totals.fat),
     carbs: Math.max(0, goal.carbs - totals.carbs),
+    fiber: Math.max(0, goal.fiber - totals.fiber),
   };
+}
+
+export function fmt(n: number, decimals = 0): string {
+  return n.toLocaleString('es-CL', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
 export function formatDate(date: Date): string {

@@ -1,0 +1,2 @@
+ALTER TABLE daily_goals
+  ADD COLUMN fiber INT DEFAULT 25,

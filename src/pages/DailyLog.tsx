@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
-import { calcNutrients, formatDateShort } from '../utils/calculations';
+import { calcNutrients, formatDateShort, fmt } from '../utils/calculations';
 import MacroSummary from '../components/MacroSummary';
 import ReferenciaPesos from '../components/ReferenciaPesos';
 import GymSection from '../components/GymSection';
@@ -9,6 +9,23 @@ import WeightSection from '../components/WeightSection';
 import DailyAnalysis from '../components/DailyAnalysis';
 import Toast from '../components/Toast';
 import type { DailyGoal } from '../types';
+
+function groupByMeal(entries: any[], gapMinutes = 60) {
+  if (!entries.length) return [];
+  const sorted = [...entries].sort((a, b) => a.datetime.localeCompare(b.datetime));
+  const meals: { time: string; entries: any[] }[] = [{ time: sorted[0].datetime.slice(11, 16), entries: [sorted[0]] }];
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = new Date(sorted[i - 1].datetime);
+    const curr = new Date(sorted[i].datetime);
+    const diff = (curr.getTime() - prev.getTime()) / 60000;
+    if (diff >= gapMinutes) {
+      meals.push({ time: sorted[i].datetime.slice(11, 16), entries: [sorted[i]] });
+    } else {
+      meals[meals.length - 1].entries.push(sorted[i]);
+    }
+  }
+  return meals;
+}
 
 export default function DailyLog() {
   const { date } = useParams<{ date: string }>();
@@ -19,7 +36,7 @@ export default function DailyLog() {
   const [foods, setFoods] = useState<any[]>([]);
   const [entries, setEntries] = useState<any[]>([]);
   const [movements, setMovements] = useState<any[]>([]);
-  const [goal, setGoal] = useState<DailyGoal>({ calories: 2000, protein: 150, fat: 65, carbs: 200 });
+  const [goal, setGoal] = useState<DailyGoal>({ calories: 2000, protein: 150, fat: 65, carbs: 200, fiber: 25 });
   const [toast, setToast] = useState<string | null>(null);
   const closeToast = useCallback(() => setToast(null), []);
 
@@ -137,7 +154,7 @@ export default function DailyLog() {
   const preview = selectedFood ? calcNutrients(selectedFood, Number(grams) || 0) : null;
 
   const totals = {
-    calories: 0, protein: 0, fat: 0, carbs: 0,
+    calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0,
     caloriesBurned: dayMovements.reduce((s: number, m: any) => s + m.caloriesBurned, 0),
   };
   for (const e of dayEntries) {
@@ -148,14 +165,33 @@ export default function DailyLog() {
       totals.protein += n.protein;
       totals.fat += n.fat;
       totals.carbs += n.carbs;
+      totals.fiber += n.fiber;
     }
   }
 
+  const meals = groupByMeal(dayEntries).reverse();
+
+  const balance = totals.calories - goal.calories - totals.caloriesBurned;
+  const balanceColor = balance > 100 ? 'text-red-600' : balance < -100 ? 'text-green-600' : 'text-yellow-600';
+  const balanceSymbol = balance > 0 ? '+' : balance < 0 ? '-' : '';
+
+  const fmtTime = (t: string) => {
+    const [h, m] = t.split(':');
+    const d = new Date();
+    d.setHours(Number(h), Number(m), 0, 0);
+    return d.toLocaleTimeString(goal.locale || 'es-CL', { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button onClick={() => navigate('/')} className="text-gray-400 hover:text-gray-600">&larr;</button>
-        <h2 className="text-xl font-bold">{formatDateShort(d)}</h2>
+      <div className="flex flex-col items-center gap-1">
+        <span className={`text-3xl font-bold ${balanceColor}`}>
+          {balanceSymbol} {fmt(Math.abs(balance))} kcal
+        </span>
+        <div className="flex items-center gap-2 self-start">
+          <button onClick={() => navigate('/')} className="text-gray-400 hover:text-gray-600">&larr;</button>
+          <h2 className="text-xl font-bold">{formatDateShort(d)}</h2>
+        </div>
       </div>
 
       <MacroSummary totals={totals} goal={goal} date={d} />
@@ -218,6 +254,7 @@ export default function DailyLog() {
             <span>🥩 {preview.protein}g prot</span>
             <span>🧈 {preview.fat}g grasas</span>
             <span>🍚 {preview.carbs}g carbs</span>
+            <span>🌾 {preview.fiber}g fibra</span>
           </div>
         )}
       </div>
@@ -225,28 +262,56 @@ export default function DailyLog() {
 
       {dayEntries.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <h3 className="font-semibold mb-3">Alimentos registrados</h3>
-          <div className="space-y-2">
-            {dayEntries.map((e: any) => {
-              const f = foods.find(x => x.id === e.foodItemId);
-              if (!f) return null;
-              const n = calcNutrients(f, e.grams);
+          <h3 className="font-bold text-lg mb-3">🥘 Alimentos registrados</h3>
+          <div className="space-y-4">
+            {meals.map((meal, mi) => {
+              const mealTotals = { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0 };
+              for (const e of meal.entries) {
+                const f = foods.find(x => x.id === e.foodItemId);
+                if (f) {
+                  const n = calcNutrients(f, e.grams);
+                  mealTotals.calories += n.calories;
+                  mealTotals.protein += n.protein;
+                  mealTotals.fat += n.fat;
+                  mealTotals.carbs += n.carbs;
+                  mealTotals.fiber += n.fiber;
+                }
+              }
               return (
-                <div key={e.id} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
-                  <div>
-                    <span className="font-medium">{f.name}</span>
-                    <span className="text-gray-400 ml-2">{e.grams}g</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-500 text-xs">
-                    <span>{n.calories}cal</span>
-                    <span>{n.protein}g</span>
-                    <span>{n.fat}g</span>
-                    <span>{n.carbs}g</span>
-                    <button onClick={async () => { await api.deleteFoodEntry(e.id); loadData(); }} className="text-red-400 hover:text-red-600 ml-2">✕</button>
-                  </div>
+              <div key={mi}>
+                <div className="text-base font-bold text-black mb-1">Comida {meals.length - mi} — {fmtTime(meal.time)}</div>
+                <div className="space-y-2">
+                  {meal.entries.map((e: any) => {
+                    const f = foods.find(x => x.id === e.foodItemId);
+                    if (!f) return null;
+                    const n = calcNutrients(f, e.grams);
+                    return (
+                      <div key={e.id} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
+                        <div>
+                          <span className="font-medium">{f.name}</span>
+                          <span className="text-gray-400 ml-2">{e.grams}g</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-gray-500 text-xs">
+                          <span>{fmt(n.calories)}cal</span>
+                          <span>{fmt(n.protein, 1)}g</span>
+                          <span>{fmt(n.fat, 1)}g</span>
+                          <span>{fmt(n.carbs, 1)}g</span>
+                          <span>{fmt(n.fiber, 1)}g</span>
+                          <button onClick={async () => { await api.deleteFoodEntry(e.id); loadData(); }} className="text-red-400 hover:text-red-600 ml-2">✕</button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+                <div className="text-xs text-gray-500 mt-2 pt-1 border-t border-gray-200 flex gap-3 flex-wrap justify-center">
+                  <span>🔥 {fmt(mealTotals.calories)} kcal</span>
+                  <span>🥩 {fmt(mealTotals.protein, 1)}g prot</span>
+                  <span>🧈 {fmt(mealTotals.fat, 1)}g grasas</span>
+                  <span>🍚 {fmt(mealTotals.carbs, 1)}g carbs</span>
+                  <span>🌾 {fmt(mealTotals.fiber, 1)}g fibra</span>
+                </div>
+              </div>
+            )})}
           </div>
         </div>
       )}

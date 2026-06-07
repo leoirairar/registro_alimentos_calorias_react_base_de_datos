@@ -2,7 +2,11 @@ ALTER TABLE daily_goals
   ADD COLUMN height_cm INT DEFAULT 170,
   ADD COLUMN age INT DEFAULT 30,
   ADD COLUMN gender VARCHAR(10) DEFAULT 'male',
-  ADD COLUMN initial_weight_kg DECIMAL(5,1);
+  ADD COLUMN initial_weight_kg DECIMAL(5,1),
+  ADD COLUMN fiber INT DEFAULT 25,
+  ADD COLUMN locale VARCHAR(10) DEFAULT 'es-CL';
+
+ALTER TABLE foods ADD COLUMN fiber_per_100g DECIMAL(5,1) DEFAULT 0;
 
 CREATE TABLE body_measurements (
   id VARCHAR(36) PRIMARY KEY,
