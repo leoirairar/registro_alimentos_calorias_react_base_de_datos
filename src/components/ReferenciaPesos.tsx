@@ -1,5 +1,5 @@
 const porciones = [
-    { alimento: 'Scoop protein', porcion: '1 unidad', gramos: 30 },
+  { alimento: 'Scoop protein', porcion: '1 unidad', gramos: 30 },
   { alimento: 'Queso fresco', porcion: '1 lámina', gramos: 30 },
   { alimento: 'Jamón', porcion: '1 lámina', gramos: 20 },
   { alimento: 'Maní japonés', porcion: '10 unidades', gramos: 15 },
